@@ -33,8 +33,8 @@ deploy_benchmarker:
 
 deploy:
 	$(MAKE) webapp/go build
-	ssh isucon1 rm -rf "$(SOURCE_DIR)"
-	scp -r webapp/go isucon1:"$(SOURCE_DIR)"
+	ssh isucon1 rm webapp/go/isupipe
+	scp -r webapp/go/isupipe isucon1:"$(SOURCE_DIR)/isupipe"
 	scp ./Makefile "isucon1:~/Makefile"
 	ssh isucon1 sudo systemctl restart isupipe-go
 
@@ -47,4 +47,4 @@ query:
 pprof:
 	killall -USR1 isupipe && \
 	sleep 1 && \
-	$(HOME)/go/bin/pprof -http=localhost:1080 "$(SOURCE_DIR)"/isupipe "$(SOURCE_DIR)"/cpu.pprof
+	$(HOME)/go/bin/pprof -http=localhost:1080 $(SOURCE_DIR)/isupipe /tmp/cpu.pprof
