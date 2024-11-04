@@ -8,6 +8,8 @@ ISUPIPE_TAG=isupipe:latest
 
 SERVER_IP := 18.181.199.55
 
+SOURCE_DIR := ~/webapp/go
+
 test: test_benchmarker
 .PHONY: test bench
 
@@ -17,10 +19,32 @@ test_benchmarker:
 
 build_webapp:
 	$(MAKE) webapp/go docker_image
-.PHONY: build_webapp
+.PHONY: build_webapp alp query pprof
 
 bench:
+	make reset
 	ssh isubench ./bench run --target https://pipe.u.isucon.local --nameserver $(SERVER_IP) --webapp $(SERVER_IP) --enable-ssl
+
+reset:
+	ssh isucon1 "sudo killall -USR2 isupipe && sudo rm /var/log/nginx/access.log && sudo systemctl restart nginx && sudo rm -f /var/log/mysql/mysql-slow.log && sudo systemctl restart mysql"
 
 deploy_benchmarker:
 	scp ./Makefile "isubench:~/Makefile"
+
+deploy:
+	$(MAKE) webapp/go build
+	ssh isucon1 rm -rf "$(SOURCE_DIR)"
+	scp -r webapp/go isucon1:"$(SOURCE_DIR)"
+	scp ./Makefile "isucon1:~/Makefile"
+	ssh isucon1 sudo systemctl restart isupipe-go
+
+alp:
+	sudo cat /var/log/nginx/access.log | alp ltsv --sort sum -m "user/[0-9]+,/@\w+,/image/\d+" -o count,method,uri,min,avg,max,sum | less
+
+query:
+	sudo pt-query-digest /var/log/mysql/mysql-slow.log
+
+pprof:
+	killall -USR1 isupipe && \
+	sleep 1 && \
+	$(HOME)/go/bin/pprof -http=localhost:1080 "$(SOURCE_DIR)"/app "$(SOURCE_DIR)"/cpu.pprof
