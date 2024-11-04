@@ -13,6 +13,9 @@ RM=rm -f
 
 all: build
 
+./bin/bench_linux_amd64: $(shell find . -type f -name '*.go')
+	$(LINUX_TARGET_ENV) $(BUILD) -o ./bin/bench_linux_amd64 ./cmd/bench
+
 build: clean
 	$(DARWIN_TARGET_ENV) $(BUILD) -o ./bin/bench_darwin_amd64 ./cmd/bench
 	$(DARWIN_TARGET_ARM64_ENV) $(BUILD) -o ./bin/bench_darwin_arm64 ./cmd/bench

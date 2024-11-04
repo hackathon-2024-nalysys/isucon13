@@ -168,7 +168,7 @@ var run = cli.Command{
 		if enableSSL {
 			config.HTTPScheme = "https"
 			config.TargetPort = 443
-			config.InsecureSkipVerify = false
+			config.InsecureSkipVerify = true
 			lgr.Info("SSL接続が有効になっています")
 			u, err := url.Parse(config.TargetBaseURL)
 			if err != nil {
