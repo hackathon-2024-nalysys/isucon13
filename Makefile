@@ -47,4 +47,4 @@ query:
 pprof:
 	killall -USR1 isupipe && \
 	sleep 1 && \
-	$(HOME)/go/bin/pprof -http=localhost:1080 "$(SOURCE_DIR)"/app "$(SOURCE_DIR)"/cpu.pprof
+	$(HOME)/go/bin/pprof -http=localhost:1080 "$(SOURCE_DIR)"/isupipe "$(SOURCE_DIR)"/cpu.pprof
