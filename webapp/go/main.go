@@ -119,6 +119,8 @@ func initializeHandler(c echo.Context) error {
 }
 
 func main() {
+	registerProfSignalHandler()
+
 	e := echo.New()
 	e.Debug = true
 	e.Logger.SetLevel(echolog.DEBUG)
