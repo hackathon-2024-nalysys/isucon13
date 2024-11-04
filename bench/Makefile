@@ -46,6 +46,11 @@ deploy_production:
 	sudo docker tag isucon13-benchmarker-prod:latest 424484851194.dkr.ecr.ap-northeast-1.amazonaws.com/isucon13-benchmarker-prod:latest
 	sudo docker push 424484851194.dkr.ecr.ap-northeast-1.amazonaws.com/isucon13-benchmarker-prod:latest
 
+deploy_aws: ./bin/bench_linux_amd64
+	scp ./bin/bench_linux_amd64 "isubench:~/bench"
+	scp ./bin/bench_linux_amd64 "isubench:~/bench"
+  
+
 clean:
 	$(RM) ./bin/bench_darwin_amd64
 	$(RM) ./bin/bench_darwin_arm64
