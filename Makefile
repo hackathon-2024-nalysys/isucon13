@@ -39,7 +39,7 @@ deploy:
 	ssh isucon1 sudo systemctl restart isupipe-go
 
 alp:
-	sudo cat /var/log/nginx/access.log | alp ltsv --sort sum -m "user/[0-9]+,/@\w+,/image/\d+" -o count,method,uri,min,avg,max,sum | less
+	sudo cat /var/log/nginx/access.log | alp ltsv --sort sum -r -m "user/\w+/icon,user/\w+/statistics,user/\w+/theme,assets/.*,livestream/\d+/report,livestream/\d+/livecomment,livestream/\d+/reaction,livestream/\d+/ngwords,livestream/\d+/enter,livestream/\d+/exit,livestream/\d+/moderate,livestream/\d+/moderate,livestream/\d+/statistics,livestream/\d+$$" -o count,method,uri,min,avg,max,sum | less
 
 query:
 	sudo pt-query-digest /var/log/mysql/mysql-slow.log
