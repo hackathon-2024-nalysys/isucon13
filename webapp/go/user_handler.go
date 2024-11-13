@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -111,6 +112,10 @@ func getIconHandler(c echo.Context) error {
 		} else {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user icon: "+err.Error())
 		}
+	}
+
+	if err := os.WriteFile(fmt.Sprintf("/home/isucon/webapp/public/usericons/%s.jpeg", username), image, 0644); err != nil {
+		log.Print(err)
 	}
 
 	return c.Blob(http.StatusOK, "image/jpeg", image)
