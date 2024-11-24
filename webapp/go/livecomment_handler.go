@@ -194,19 +194,11 @@ func postLivecommentHandler(c echo.Context) error {
 	}
 	defer tx.Rollback()
 
-	var livestreamModel LivestreamModel
-	if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", livestreamID); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusNotFound, "livestream not found")
-		} else {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
-		}
-	}
-	livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamModel.ID})
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{int64(livestreamID)})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
 	}
-	livestream, ok := livestreamMap[livestreamModel.ID]
+	livestream, ok := livestreamMap[int64(livestreamID)]
 	if !ok {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream")
 	}
