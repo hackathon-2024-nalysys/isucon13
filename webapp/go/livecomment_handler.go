@@ -122,7 +122,8 @@ func getLivecommentsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livecomments)
+	// return c.JSON(http.StatusOK, livecomments)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livecomments))
 }
 
 func getNgwords(c echo.Context) error {

@@ -13,6 +13,7 @@ import (
 	"strconv"
 
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/bytedance/sonic"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -34,6 +35,15 @@ var (
 	secret                   = []byte("isucon13_session_cookiestore_defaultsecret")
 	memcacheClient           *memcache.Client
 )
+
+func jsonEncode(res any) []byte {
+	b, err := sonic.Marshal(&res)
+	if err != nil {
+		panic(err)
+	}
+
+	return b
+}
 
 func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)

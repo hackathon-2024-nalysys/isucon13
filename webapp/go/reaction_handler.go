@@ -91,7 +91,8 @@ func getReactionsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, reactions)
+	// return c.JSON(http.StatusOK, reactions)
+	return c.JSONBlob(http.StatusOK, jsonEncode(reactions))
 }
 
 func postReactionHandler(c echo.Context) error {

@@ -240,7 +240,8 @@ func searchLivestreamsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestreams)
+	// return c.JSON(http.StatusOK, livestreams)
+	return c.JSONBlob(http.StatusOK, jsonEncode(livestreams))
 }
 
 func getMyLivestreamsHandler(c echo.Context) error {
