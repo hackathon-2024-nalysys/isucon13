@@ -159,6 +159,8 @@ func reserveLivestreamHandler(c echo.Context) error {
 		}
 	}
 
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamID})
+
 	livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModel)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
@@ -559,6 +561,7 @@ func getLivestreams(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*L
 				Description:  livestreamModel.Description,
 				PlaylistUrl:  livestreamModel.PlaylistUrl,
 				ThumbnailUrl: livestreamModel.ThumbnailUrl,
+				Tags:         make([]Tag, 0),
 				StartAt:      livestreamModel.StartAt,
 				EndAt:        livestreamModel.EndAt,
 			}
