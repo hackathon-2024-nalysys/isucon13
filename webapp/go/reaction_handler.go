@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -67,14 +68,24 @@ func getReactionsHandler(c echo.Context) error {
 	}
 
 	reactions := make([]Reaction, len(reactionModels))
+	reactionMap, err := fillReactionResponse(ctx, tx, reactionModels)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+	}
 	for i := range reactionModels {
-		reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
-		if err != nil {
-			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+		reaction, ok := reactionMap[reactionModels[i].ID]
+		if !ok {
+			log.Printf("not found reaction, reactionID: %v", reactionModels[i].ID)
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get reaction")
 		}
-
 		reactions[i] = reaction
 	}
+
+	// for i := range reactionModels {
+	// 	reaction, err := fillReactionResponse(ctx, tx, reactionModels[i])
+
+	// 	reactions[i] = reaction
+	// }
 
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
@@ -129,9 +140,14 @@ func postReactionHandler(c echo.Context) error {
 	}
 	reactionModel.ID = reactionID
 
-	reaction, err := fillReactionResponse(ctx, tx, reactionModel)
+	reactionMap, err := fillReactionResponse(ctx, tx, []ReactionModel{reactionModel})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill reaction: "+err.Error())
+	}
+	reaction, ok := reactionMap[reactionID]
+	if !ok {
+		log.Printf("not found reaction, reactionID: %v", reactionID)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get reaction")
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -141,29 +157,74 @@ func postReactionHandler(c echo.Context) error {
 	return c.JSON(http.StatusCreated, reaction)
 }
 
-func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel ReactionModel) (Reaction, error) {
-	userMap, err := getUsers(ctx, tx, []int64{reactionModel.UserID})
+func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModels []ReactionModel) (map[int64]Reaction, error) {
+	userIDs := make([]int64, len(reactionModels))
+	livestreamIDs := make([]int64, len(reactionModels))
+	for i := range reactionModels {
+		userIDs[i] = reactionModels[i].UserID
+		livestreamIDs[i] = reactionModels[i].LivestreamID
+	}
+	userMap, err := getUsers(ctx, tx, userIDs)
 	if err != nil {
-		return Reaction{}, err
+		return nil, err
 	}
-	user := userMap[reactionModel.UserID]
+	// user := userMap[reactionModel.UserID]
 
-	livestreamModel := LivestreamModel{}
-	if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", reactionModel.LivestreamID); err != nil {
-		return Reaction{}, err
-	}
-	livestream, err := fillLivestreamResponse(ctx, tx, livestreamModel)
+	// var livestreamModels []LivestreamModel
+	// query, params, err := sqlx.In("SELECT * FROM livestreams WHERE id IN (?)", livestreamIDs)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// if err := tx.SelectContext(ctx, &livestreamModels, query, params...); err != nil {
+	// 	return nil, err
+	// }
+
+	// var livestreamMap = make(map[int64]Livestream, len(livestreamModels))
+	livestreamMap, err := getLivestreams(ctx, tx, livestreamIDs)
 	if err != nil {
-		return Reaction{}, err
+		return nil, err
+	}
+	// for _, livestreamModel := range livestreamModels {
+	// 	livestream, err := fillLivestreamResponse(ctx, tx, livestreamModel)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	livestreamMap[livestreamModel.ID] = livestream
+	// }
+	// livestreamModel := LivestreamModel{}
+	// if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", reactionModel.LivestreamID); err != nil {
+	// 	return Reaction{}, err
+	// }
+	var reactionMap = make(map[int64]Reaction, len(reactionModels))
+	for _, reactionModel := range reactionModels {
+		user, ok := userMap[reactionModel.UserID]
+		if !ok {
+			log.Printf("not found user, userID: %v", reactionModel.UserID)
+			continue
+		}
+		livestream, ok := livestreamMap[reactionModel.LivestreamID]
+		if !ok {
+			log.Printf("not found livestream, livestreamID: %v", reactionModel.LivestreamID)
+			continue
+		}
+
+		reaction := Reaction{
+			ID:         reactionModel.ID,
+			EmojiName:  reactionModel.EmojiName,
+			User:       *user,
+			Livestream: *livestream,
+			CreatedAt:  reactionModel.CreatedAt,
+		}
+		reactionMap[reactionModel.ID] = reaction
 	}
 
-	reaction := Reaction{
-		ID:         reactionModel.ID,
-		EmojiName:  reactionModel.EmojiName,
-		User:       *user,
-		Livestream: livestream,
-		CreatedAt:  reactionModel.CreatedAt,
-	}
+	// reaction := Reaction{
+	// 	ID:         reactionModel.ID,
+	// 	EmojiName:  reactionModel.EmojiName,
+	// 	User:       *user,
+	// 	Livestream: livestream,
+	// 	CreatedAt:  reactionModel.CreatedAt,
+	// }
 
-	return reaction, nil
+	return reactionMap, nil
 }

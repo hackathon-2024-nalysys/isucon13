@@ -133,7 +133,7 @@ where
 	var rank int64
 	if err := tx.GetContext(ctx, &rank, query, user.ID); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get rank: "+err.Error())
-	} 
+	}
 
 	// ランク算出
 	// var users []*UserModel
@@ -156,7 +156,7 @@ where
 	// 	var tips int64
 	// 	query = `
 	// 	SELECT IFNULL(SUM(l2.tip), 0) FROM users u
-	// 	INNER JOIN livestreams l ON l.user_id = u.id	
+	// 	INNER JOIN livestreams l ON l.user_id = u.id
 	// 	INNER JOIN livecomments l2 ON l2.livestream_id = l.id
 	// 	WHERE u.id = ?`
 	// 	if err := tx.GetContext(ctx, &tips, query, user.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
@@ -281,7 +281,7 @@ func getLivestreamStatisticsHandler(c echo.Context) error {
 	// 	return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestreams: "+err.Error())
 	// }
 
-	query :=`WiTH reactions AS(
+	query := `WiTH reactions AS(
     select
         l.id,
         count(r.id) as reaction_count

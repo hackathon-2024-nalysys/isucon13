@@ -159,7 +159,7 @@ func reserveLivestreamHandler(c echo.Context) error {
 		}
 	}
 
-	livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamID})
+	// livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamID})
 
 	livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModel)
 	if err != nil {
