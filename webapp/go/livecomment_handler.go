@@ -202,10 +202,18 @@ func postLivecommentHandler(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
 		}
 	}
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamModel.ID})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
+	}
+	livestream, ok := livestreamMap[livestreamModel.ID]
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream")
+	}
 
 	// スパム判定
 	var ngwords []*NGWord
-	if err := tx.SelectContext(ctx, &ngwords, "SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?", livestreamModel.UserID, livestreamModel.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+	if err := tx.SelectContext(ctx, &ngwords, "SELECT id, user_id, livestream_id, word FROM ng_words WHERE user_id = ? AND livestream_id = ?", livestream.Owner.ID, livestream.ID); err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get NG words: "+err.Error())
 	}
 
@@ -248,7 +256,7 @@ func postLivecommentHandler(c echo.Context) error {
 	}
 	livecommentModel.ID = livecommentID
 
-	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel, nil)
+	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel, livestream)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livecomment: "+err.Error())
 	}
