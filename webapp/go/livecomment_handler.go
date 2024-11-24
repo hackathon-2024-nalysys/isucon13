@@ -102,9 +102,15 @@ func getLivecommentsHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livecomments: "+err.Error())
 	}
 
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{int64(livestreamID)})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
+	}
+	livestream := livestreamMap[int64(livestreamID)]
+
 	livecomments := make([]Livecomment, len(livecommentModels))
 	for i := range livecommentModels {
-		livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModels[i])
+		livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModels[i], livestream)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "failed to fil livecomments: "+err.Error())
 		}
@@ -241,7 +247,7 @@ func postLivecommentHandler(c echo.Context) error {
 	}
 	livecommentModel.ID = livecommentID
 
-	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel)
+	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel, nil)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livecomment: "+err.Error())
 	}
@@ -432,18 +438,20 @@ func moderateHandler(c echo.Context) error {
 	})
 }
 
-func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel LivecommentModel) (Livecomment, error) {
+func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel LivecommentModel, livestream *Livestream) (Livecomment, error) {
 	commentOwnerMap, err := getUsers(ctx, tx, []int64{livecommentModel.UserID})
 	if err != nil {
 		return Livecomment{}, err
 	}
 	commentOwner := commentOwnerMap[livecommentModel.UserID]
 
-	livestreamMap, err := getLivestreams(ctx, tx, []int64{livecommentModel.LivestreamID})
-	if err != nil {
-		return Livecomment{}, err
+	if livestream == nil {
+		livestreamMap, err := getLivestreams(ctx, tx, []int64{livecommentModel.LivestreamID})
+		if err != nil {
+			return Livecomment{}, err
+		}
+		livestream = livestreamMap[livecommentModel.LivestreamID]
 	}
-	livestream := livestreamMap[livecommentModel.LivestreamID]
 
 	livecomment := Livecomment{
 		ID:         livecommentModel.ID,
@@ -468,7 +476,7 @@ func fillLivecommentReportResponse(ctx context.Context, tx *sqlx.Tx, reportModel
 	if err := tx.GetContext(ctx, &livecommentModel, "SELECT * FROM livecomments WHERE id = ?", reportModel.LivecommentID); err != nil {
 		return LivecommentReport{}, err
 	}
-	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel)
+	livecomment, err := fillLivecommentResponse(ctx, tx, livecommentModel, nil)
 	if err != nil {
 		return LivecommentReport{}, err
 	}
