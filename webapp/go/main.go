@@ -125,7 +125,13 @@ func connectDB(logger echo.Logger) (*sqlx.DB, error) {
 }
 
 func initializeHandler(c echo.Context) error {
-	if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
+	remoteDbIP := os.Getenv("ISUCON13_REMOTE_DB")
+	if remoteDbIP != "" {
+		if out, err := exec.Command("/usr/bin/ssh", fmt.Sprintf("isucon@%s", remoteDbIP), " ./webapp/sql/init.sh").CombinedOutput(); err != nil {
+			c.Logger().Warnf("remote init.sh failed with err=%s", string(out))
+			return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
+		}
+	} else if out, err := exec.Command("../sql/init.sh").CombinedOutput(); err != nil {
 		c.Logger().Warnf("init.sh failed with err=%s", string(out))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
 	}
