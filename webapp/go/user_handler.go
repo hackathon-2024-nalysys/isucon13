@@ -134,6 +134,10 @@ func postIconHandler(c echo.Context) error {
 	// existence already checked
 	userID := sess.Values[defaultUserIDKey].(int64)
 
+	if err := invalidateUserCache(userID); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to invalidate user cache: "+err.Error())
+	}
+
 	var req *PostIconRequest
 	if err := json.NewDecoder(c.Request().Body).Decode(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "failed to decode the request body as json")
@@ -196,7 +200,7 @@ func getMeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get user: "+err.Error())
 	}
 
-	user, err := fillUserResponse(ctx, tx, userModel)
+	userMap, err := getUsers(ctx, tx, []int64{userID})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill user: "+err.Error())
 	}
@@ -205,7 +209,7 @@ func getMeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, user)
+	return c.JSON(http.StatusOK, userMap[userID])
 }
 
 // ユーザ登録API
@@ -431,4 +435,86 @@ func fillUserResponse(ctx context.Context, tx *sqlx.Tx, userModel UserModel) (Us
 	}
 
 	return user, nil
+}
+
+func getUsers(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*User, error) {
+	userMap, err := getUsersByCache(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("cachedUserMap: %+v", userMap)
+
+	missIDs := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := userMap[id]; !ok {
+			missIDs = append(missIDs, id)
+		}
+	}
+
+	log.Printf("missIDs: %+v", missIDs)
+
+	if len(missIDs) == 0 {
+		return userMap, nil
+	}
+
+	// User取得
+	var userModels []UserModel
+	userQuery, userParams, err := sqlx.In("SELECT * FROM users WHERE id IN (?)", missIDs)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.SelectContext(ctx, &userModels, userQuery, userParams...); err != nil {
+		return nil, err
+	}
+
+	// Theme取得
+	var themeModels []ThemeModel
+	themeQuery, themeParams, err := sqlx.In("SELECT * FROM themes WHERE user_id IN (?)", missIDs)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.SelectContext(ctx, &themeModels, themeQuery, themeParams...); err != nil {
+		return nil, err
+	}
+
+	var iconModels []struct {
+		UserID int64  `db:"user_id"`
+		Hash   string `db:"hash"`
+	}
+	iconQuery, iconParams, err := sqlx.In("SELECT user_id, hash FROM icons WHERE user_id IN (?)", missIDs)
+	if err := tx.SelectContext(ctx, &iconModels, iconQuery, iconParams...); err != nil {
+		return nil, err
+	}
+
+	for _, userModel := range userModels {
+		userMap[userModel.ID] = &User{
+			ID:          userModel.ID,
+			Name:        userModel.Name,
+			DisplayName: userModel.DisplayName,
+			Description: userModel.Description,
+			IconHash:    "d9f8294e9d895f81ce62e73dc7d5dff862a4fa40bd4e0fecf53f7526a8edcac0",
+		}
+	}
+
+	for _, themeModel := range themeModels {
+		userMap[themeModel.UserID].Theme = Theme{
+			ID:       themeModel.ID,
+			DarkMode: themeModel.DarkMode,
+		}
+	}
+
+	for _, iconModel := range iconModels {
+		userMap[iconModel.UserID].IconHash = iconModel.Hash
+	}
+
+	missedUsers := make([]*User, len(missIDs))
+	for i, missedID := range missIDs {
+		missedUsers[i] = userMap[missedID]
+	}
+	if err := cacheUsers(missedUsers); err != nil {
+		return nil, err
+	}
+
+	return userMap, nil
 }

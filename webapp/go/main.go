@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"strconv"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -31,6 +32,7 @@ var (
 	powerDNSSubdomainAddress string
 	dbConn                   *sqlx.DB
 	secret                   = []byte("isucon13_session_cookiestore_defaultsecret")
+	memcacheClient           *memcache.Client
 )
 
 func init() {
@@ -38,6 +40,11 @@ func init() {
 	if secretKey, ok := os.LookupEnv("ISUCON13_SESSION_SECRETKEY"); ok {
 		secret = []byte(secretKey)
 	}
+	memdAddr := os.Getenv("ISUCONP_MEMCACHED_ADDRESS")
+	if memdAddr == "" {
+		memdAddr = "localhost:11211"
+	}
+	memcacheClient = memcache.New(memdAddr)
 }
 
 type InitializeResponse struct {

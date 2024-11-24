@@ -1,0 +1,26 @@
+// protoのバージョンの宣言
+syntax = "proto3";
+
+// protoファイルから自動生成させるGoのコードの置き先
+// (詳細は4章にて)
+option go_package = "./grpc";
+
+// packageの宣言
+package main;
+
+// import "google/protobuf/timestamp.proto";
+
+// 型の定義
+message User {
+  int64 ID = 1;
+  string Name = 2;
+  string DisplayName = 3;
+  string Description = 4;
+  Theme Theme = 5;
+  string IconHash = 6;
+}
+
+message Theme {
+  int64 ID  = 1;
+  bool DarkMode = 2;
+}
