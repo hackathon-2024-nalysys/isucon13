@@ -438,19 +438,16 @@ func fillLivecommentResponse(ctx context.Context, tx *sqlx.Tx, livecommentModel 
 	}
 	commentOwner := commentOwnerMap[livecommentModel.UserID]
 
-	livestreamModel := LivestreamModel{}
-	if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", livecommentModel.LivestreamID); err != nil {
-		return Livecomment{}, err
-	}
-	livestream, err := fillLivestreamResponse(ctx, tx, livestreamModel)
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{livecommentModel.LivestreamID})
 	if err != nil {
 		return Livecomment{}, err
 	}
+	livestream := livestreamMap[livecommentModel.LivestreamID]
 
 	livecomment := Livecomment{
 		ID:         livecommentModel.ID,
 		User:       *commentOwner,
-		Livestream: livestream,
+		Livestream: *livestream,
 		Comment:    livecommentModel.Comment,
 		Tip:        livecommentModel.Tip,
 		CreatedAt:  livecommentModel.CreatedAt,
