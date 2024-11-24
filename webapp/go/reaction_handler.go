@@ -142,14 +142,11 @@ func postReactionHandler(c echo.Context) error {
 }
 
 func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel ReactionModel) (Reaction, error) {
-	userModel := UserModel{}
-	if err := tx.GetContext(ctx, &userModel, "SELECT * FROM users WHERE id = ?", reactionModel.UserID); err != nil {
-		return Reaction{}, err
-	}
-	user, err := fillUserResponse(ctx, tx, userModel)
+	userMap, err := getUsers(ctx, tx, []int64{reactionModel.UserID})
 	if err != nil {
 		return Reaction{}, err
 	}
+	user := userMap[reactionModel.UserID]
 
 	livestreamModel := LivestreamModel{}
 	if err := tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", reactionModel.LivestreamID); err != nil {
@@ -163,7 +160,7 @@ func fillReactionResponse(ctx context.Context, tx *sqlx.Tx, reactionModel Reacti
 	reaction := Reaction{
 		ID:         reactionModel.ID,
 		EmojiName:  reactionModel.EmojiName,
-		User:       user,
+		User:       *user,
 		Livestream: livestream,
 		CreatedAt:  reactionModel.CreatedAt,
 	}
