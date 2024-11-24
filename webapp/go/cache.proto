@@ -24,3 +24,20 @@ message Theme {
   int64 ID  = 1;
   bool DarkMode = 2;
 }
+
+message Livestream {
+  int64 ID = 1;
+  string Title = 2;
+  string Description = 3;
+  string PlaylistUrl = 4;
+  string ThumbnailUrl = 5;
+  repeated Tag Tags = 6;
+  int64 StartAt = 7;
+  int64 EndAt = 8;
+  int64 OwnerID = 9;
+}
+
+message Tag {
+  int64 ID = 1;
+  string Name = 2;
+}

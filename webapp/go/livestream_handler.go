@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -410,25 +411,20 @@ func getLivestreamHandler(c echo.Context) error {
 	}
 	defer tx.Rollback()
 
-	livestreamModel := LivestreamModel{}
-	err = tx.GetContext(ctx, &livestreamModel, "SELECT * FROM livestreams WHERE id = ?", livestreamID)
-	if errors.Is(err, sql.ErrNoRows) {
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{int64(livestreamID)})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestreams: "+err.Error())
+	}
+	livestream, ok := livestreamMap[int64(livestreamID)]
+	if !ok {
 		return echo.NewHTTPError(http.StatusNotFound, "not found livestream that has the given id")
-	}
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get livestream: "+err.Error())
-	}
-
-	livestream, err := fillLivestreamResponse(ctx, tx, livestreamModel)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
 	}
 
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusOK, livestream)
+	return c.JSON(http.StatusOK, *livestream)
 }
 
 func getLivecommentReportsHandler(c echo.Context) error {
@@ -521,4 +517,91 @@ func fillLivestreamResponse(ctx context.Context, tx *sqlx.Tx, livestreamModel Li
 		EndAt:        livestreamModel.EndAt,
 	}
 	return livestream, nil
+}
+
+func getLivestreams(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*Livestream, error) {
+	livestreamMap, err := getLivestreamsByCache(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	missedIDs := make([]int64, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := livestreamMap[id]; !ok {
+			missedIDs = append(missedIDs, id)
+		}
+	}
+
+	if len(missedIDs) > 0 {
+		var livestreamModels []LivestreamModel
+		query, params, err := sqlx.In("SELECT * FROM livestreams WHERE id IN (?)", missedIDs)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.SelectContext(ctx, &livestreamModels, query, params...); err != nil {
+			return nil, err
+		}
+
+		var livestreamTagModels []LivestreamTagModel
+		tagsQuery, tagsParams, err := sqlx.In("SELECT * FROM livestream_tags WHERE livestream_id IN (?)", missedIDs)
+		if err != nil {
+			return nil, err
+		}
+		if err := tx.SelectContext(ctx, &livestreamTagModels, tagsQuery, tagsParams...); err != nil {
+			return nil, err
+		}
+
+		for _, livestreamModel := range livestreamModels {
+			livestreamMap[livestreamModel.ID] = &Livestream{
+				ID:           livestreamModel.ID,
+				Owner:        User{ID: livestreamModel.UserID},
+				Title:        livestreamModel.Title,
+				Description:  livestreamModel.Description,
+				PlaylistUrl:  livestreamModel.PlaylistUrl,
+				ThumbnailUrl: livestreamModel.ThumbnailUrl,
+				StartAt:      livestreamModel.StartAt,
+				EndAt:        livestreamModel.EndAt,
+			}
+		}
+
+		for _, livestreamTagModel := range livestreamTagModels {
+			livestreamMap[livestreamTagModel.LivestreamID].Tags = append(
+				livestreamMap[livestreamTagModel.LivestreamID].Tags,
+				Tag{
+					ID:   livestreamTagModel.TagID,
+					Name: tagsMap[int(livestreamTagModel.TagID)],
+				},
+			)
+		}
+	}
+
+	// ユーザーは全部取得する必要あり
+	ownerIDs := make([]int64, 0, len(ids))
+	log.Printf("getting owners: %+v\n", ownerIDs)
+	for _, livestream := range livestreamMap {
+		ownerIDs = append(ownerIDs, livestream.Owner.ID)
+	}
+	ownerMap, err := getUsers(ctx, tx, ownerIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, livestream := range livestreamMap {
+		owner := ownerMap[livestream.Owner.ID]
+		if owner == nil {
+			log.Fatalf("owner not found: %d", livestream.Owner.ID)
+		}
+		livestream.Owner = *owner
+	}
+
+	livestreams := make([]*Livestream, 0, len(livestreamMap))
+	for _, livestream := range livestreamMap {
+		livestreams = append(livestreams, livestream)
+	}
+	err = cacheLivestreams(livestreams)
+	if err != nil {
+		return nil, err
+	}
+
+	return livestreamMap, nil
 }
