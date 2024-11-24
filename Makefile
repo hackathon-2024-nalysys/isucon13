@@ -6,7 +6,7 @@ DOCKER_RMI=docker rmi -f
 
 ISUPIPE_TAG=isupipe:latest
 
-SERVER_IP := 18.183.140.52
+SERVER_IP := 3.112.2.40
 
 SOURCE_DIR := ~/webapp/go
 
