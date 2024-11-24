@@ -592,7 +592,6 @@ func getLivestreams(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*L
 
 	// ユーザーは全部取得する必要あり
 	ownerIDs := make([]int64, 0, len(ids))
-	log.Printf("getting owners: %+v\n", ownerIDs)
 	for _, livestream := range livestreamMap {
 		ownerIDs = append(ownerIDs, livestream.Owner.ID)
 	}
@@ -609,9 +608,9 @@ func getLivestreams(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*L
 		livestream.Owner = *owner
 	}
 
-	livestreams := make([]*Livestream, 0, len(livestreamMap))
-	for _, livestream := range livestreamMap {
-		livestreams = append(livestreams, livestream)
+	livestreams := make([]*Livestream, 0, len(missedIDs))
+	for _, livestream := range missedIDs {
+		livestreams = append(livestreams, livestreamMap[livestream])
 	}
 	err = cacheLivestreams(livestreams)
 	if err != nil {

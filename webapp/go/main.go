@@ -122,6 +122,10 @@ func initializeHandler(c echo.Context) error {
 	if err := memcacheClient.FlushAll(); err != nil {
 		c.Logger().Warnf("failed to flush memcached: %v", err)
 	}
+	if out, err := exec.Command("/bin/sh", "-c", "rm -rf /home/isucon/webapp/public/usericons/*").CombinedOutput(); err != nil {
+		c.Logger().Warnf("init.sh failed with err=%s", string(out))
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to initialize: "+err.Error())
+	}
 
 	c.Request().Header.Add("Content-Type", "application/json;charset=utf-8")
 	return c.JSON(http.StatusOK, InitializeResponse{

@@ -109,15 +109,9 @@ func getLivestreamsByCache(ids []int64) (map[int64]*Livestream, error) {
 	for i, id := range ids {
 		keys[i] = livestreamCacheKey(id)
 	}
-	items := make(map[string]*memcache.Item, len(keys))
-	for _, key := range keys {
-		item, err := memcacheClient.Get(key)
-		if err != nil && err != memcache.ErrCacheMiss {
-			return nil, err
-		}
-		if err != memcache.ErrCacheMiss {
-			items[key] = item
-		}
+	items, err := memcacheClient.GetMulti(keys)
+	if err != nil {
+		return nil, err
 	}
 	livestreams := make(map[int64]*Livestream, len(items))
 	for key, item := range items {
