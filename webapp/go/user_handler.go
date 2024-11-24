@@ -415,16 +415,12 @@ func getUsers(ctx context.Context, tx *sqlx.Tx, ids []int64) (map[int64]*User, e
 		return nil, err
 	}
 
-	log.Printf("cachedUserMap: %+v", userMap)
-
 	missIDs := make([]int64, 0, len(ids))
 	for _, id := range ids {
 		if _, ok := userMap[id]; !ok {
 			missIDs = append(missIDs, id)
 		}
 	}
-
-	log.Printf("missIDs: %+v", missIDs)
 
 	if len(missIDs) == 0 {
 		return userMap, nil
