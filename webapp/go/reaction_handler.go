@@ -87,7 +87,7 @@ func getReactionsHandler(c echo.Context) error {
 	// 	reactions[i] = reaction
 	// }
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 

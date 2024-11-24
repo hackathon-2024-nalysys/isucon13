@@ -205,7 +205,7 @@ func getMeHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill user: "+err.Error())
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -378,7 +378,7 @@ func getUserHandler(c echo.Context) error {
 	}
 	user := userMap[userModel.ID]
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 

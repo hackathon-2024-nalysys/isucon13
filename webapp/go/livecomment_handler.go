@@ -112,7 +112,7 @@ func getLivecommentsHandler(c echo.Context) error {
 		livecomments[i] = livecomment
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -151,7 +151,7 @@ func getNgwords(c echo.Context) error {
 		}
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 

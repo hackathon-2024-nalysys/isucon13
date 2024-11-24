@@ -236,7 +236,7 @@ func searchLivestreamsHandler(c echo.Context) error {
 		livestreams = append(livestreams, livestreamMap[id])
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -277,7 +277,7 @@ func getMyLivestreamsHandler(c echo.Context) error {
 		livestreams = append(livestreams, livestreamMap[id])
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -325,7 +325,7 @@ func getUserLivestreamsHandler(c echo.Context) error {
 		livestreams = append(livestreams, livestreamMap[id])
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -434,7 +434,7 @@ func getLivestreamHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "not found livestream that has the given id")
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
@@ -487,7 +487,7 @@ func getLivecommentReportsHandler(c echo.Context) error {
 		reports[i] = report
 	}
 
-	if err := tx.Commit(); err != nil {
+	if err := tx.Rollback(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
