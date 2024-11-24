@@ -159,18 +159,16 @@ func reserveLivestreamHandler(c echo.Context) error {
 		}
 	}
 
-	// livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamID})
-
-	livestream, err := fillLivestreamResponse(ctx, tx, *livestreamModel)
+	livestreamMap, err := getLivestreams(ctx, tx, []int64{livestreamID})
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestream: "+err.Error())
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to fill livestreams: "+err.Error())
 	}
 
 	if err := tx.Commit(); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to commit: "+err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, livestream)
+	return c.JSON(http.StatusCreated, *livestreamMap[livestreamID])
 }
 
 func searchLivestreamsHandler(c echo.Context) error {
