@@ -7,3 +7,4 @@ ALTER TABLE themes ADD INDEX (user_id);
 ALTER TABLE ng_words ADD INDEX (livestream_id);
 ALTER TABLE icons ADD COLUMN `hash` VARCHAR(255);
 UPDATE icons SET `hash` = SHA2(image, 256);
+ALTER TABLE livestreams ADD INDEX (user_id);
